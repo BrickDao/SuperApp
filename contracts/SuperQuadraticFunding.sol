@@ -42,11 +42,12 @@ contract SuperQuadraticFunding is SuperAppBase {
 
         cfaV1 = CFAv1Library.InitData(_host, _cfa);
 
-        uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL |
-            // change from 'before agreement stuff to after agreement
-            SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
+        uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL;
+        // |
+        //     // change from 'before agreement stuff to after agreement
+        //     SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
+        //     SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
+        //     SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
 
         _host.registerApp(configWord);
     }
@@ -129,7 +130,7 @@ contract SuperQuadraticFunding is SuperAppBase {
     {
         ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
         address charity = abi.decode(decompiledContext.userData, (address));
-        require(charities[charity]);
+        require(charities[charity], "SQF: Not a valid charity");
         //isValidCharity(charity); TypeError
 
         address user = _host.decodeCtx(_ctx).msgSender;
@@ -185,7 +186,7 @@ contract SuperQuadraticFunding is SuperAppBase {
     {
         ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
         address newCharity = abi.decode(decompiledContext.userData, (address));
-        require(charities[newCharity]);
+        require(charities[newCharity], "SQF: Not a valid charity");
         //isValidCharity(newCharity); TypeError
 
         (, int96 oldFlowRate, , ) = IConstantFlowAgreementV1(_agreementClass)
