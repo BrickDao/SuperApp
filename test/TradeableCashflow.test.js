@@ -42,7 +42,7 @@ before(async function () {
         web3,
         from: accounts[0].address,
     });
-    
+
     //initialize the superfluid framework...put custom and web3 only bc we are using hardhat locally
     sf = await Framework.create({
         networkName: "custom",
@@ -51,7 +51,7 @@ before(async function () {
         resolverAddress: process.env.RESOLVER_ADDRESS, //this is how you get the resolver address
         protocolReleaseVersion: "test",
     });
-    
+
 
     superSigner = await sf.createSigner({
         signer: accounts[0],
@@ -59,23 +59,23 @@ before(async function () {
     });
     //use the framework to get the super toen
     daix = await sf.loadSuperToken("fDAIx");
-    
+
     //get the contract object for the erc20 token
     let daiAddress = daix.underlyingToken.address;
     dai = new ethers.Contract(daiAddress, daiABI, accounts[0]);
-    let App = await ethers.getContractFactory("TradeableCashflow", accounts[0]);    
-    
+    let App = await ethers.getContractFactory("SuperQuadraticFunding", accounts[0]);
+
     TradeableCashflow = await App.deploy(
         accounts[1].address,
         "TradeableCashflow",
         "TCF",
         sf.settings.config.hostAddress,
         daix.address
-    );    
+    );
 });
 
 beforeEach(async function () {
-    
+
     await dai.connect(accounts[0]).mint(
         accounts[0].address, ethers.utils.parseEther("1000")
     );
@@ -88,12 +88,12 @@ beforeEach(async function () {
 
     await daixUpgradeOperation.exec(accounts[0]);
 
-    const daiBal = await daix.balanceOf({account: accounts[0].address, providerOrSigner: accounts[0]});
+    const daiBal = await daix.balanceOf({ account: accounts[0].address, providerOrSigner: accounts[0] });
     console.log('daix bal for acct 0: ', daiBal);
 });
 
-describe("sending flows", async function () {    
-    
+describe("sending flows", async function () {
+
     it("Case #1 - Alice sends a flow", async () => {
 
         console.log(TradeableCashflow.address);
@@ -102,13 +102,13 @@ describe("sending flows", async function () {
             account: TradeableCashflow.address,
             providerOrSigner: accounts[0]
         });
-        
+
         const createFlowOperation = sf.cfaV1.createFlow({
             receiver: TradeableCashflow.address,
             superToken: daix.address,
             flowRate: "100000000",
-        })    
-                
+        })
+
         const txn = await createFlowOperation.exec(accounts[0]);
 
         const receipt = await txn.wait();
@@ -117,18 +117,18 @@ describe("sending flows", async function () {
             superToken: daix.address,
             account: TradeableCashflow.address,
             providerOrSigner: superSigner
-          });
+        });
 
         const ownerFlowRate = await sf.cfaV1.getNetFlow({
             superToken: daix.address,
             account: accounts[1].address,
             providerOrSigner: superSigner
         })
-        
+
         const appFinalBalance = await daix.balanceOf({
             account: TradeableCashflow.address,
             providerOrSigner: superSigner
-        });        
+        });
 
         assert.equal(
             ownerFlowRate, "100000000", "owner not receiving 100% of flowRate"
@@ -160,13 +160,13 @@ describe("sending flows", async function () {
             providerOrSigner: superSigner
         })
 
-        console.log('initial owner flow rate: ', initialOwnerFlowRate);      
+        console.log('initial owner flow rate: ', initialOwnerFlowRate);
 
         const appFlowRate = await sf.cfaV1.getNetFlow({
             superToken: daix.address,
             account: TradeableCashflow.address,
             providerOrSigner: superSigner
-          });
+        });
 
         const ownerFlowRate = await sf.cfaV1.getNetFlow({
             superToken: daix.address,
@@ -182,23 +182,23 @@ describe("sending flows", async function () {
         console.log('sender flow rate: ', senderFlowRate);
         console.log('tcf address: ', TradeableCashflow.address);
         console.log('app flow rate: ', appFlowRate);
-        
-        
+
+
         const updateFlowOperation = sf.cfaV1.updateFlow({
             receiver: TradeableCashflow.address,
             superToken: daix.address,
             flowRate: "200000000",
-        })    
-                
+        })
+
         const updateFlowTxn = await updateFlowOperation.exec(accounts[0]);
 
-        const updateFlowReceipt = await updateFlowTxn.wait();        
-        
+        const updateFlowReceipt = await updateFlowTxn.wait();
+
         const appFinalBalance = await daix.balanceOf({
             account: TradeableCashflow.address,
             providerOrSigner: superSigner
-        });     
-        
+        });
+
         const updatedOwnerFlowRate = await sf.cfaV1.getNetFlow({
             superToken: daix.address,
             account: accounts[1].address,
@@ -235,26 +235,26 @@ describe("sending flows", async function () {
             providerOrSigner: superSigner
         })
 
-        console.log('initial owner flow rate: ', initialOwnerFlowRate);    
+        console.log('initial owner flow rate: ', initialOwnerFlowRate);
 
         console.log(accounts[2].address);
-    
+
         const daixTransferOperation = daix.transfer({
-            receiver: accounts[2].address, 
+            receiver: accounts[2].address,
             amount: ethers.utils.parseEther("500")
         });
-    
-        await daixTransferOperation.exec(accounts[0]);   
-        
-        const account2Balance = await daix.balanceOf({account: accounts[2].address, providerOrSigner: superSigner});
-        console.log('account 2 balance ',account2Balance);
-        
+
+        await daixTransferOperation.exec(accounts[0]);
+
+        const account2Balance = await daix.balanceOf({ account: accounts[2].address, providerOrSigner: superSigner });
+        console.log('account 2 balance ', account2Balance);
+
         const createFlowOperation2 = sf.cfaV1.createFlow({
             receiver: TradeableCashflow.address,
             superToken: daix.address,
             flowRate: "100000000",
-        })    
-                
+        })
+
         const createFlowOperation2Txn = await createFlowOperation2.exec(accounts[2]);
 
         const createFlowOperation2Receipt = await createFlowOperation2Txn.wait();
@@ -263,13 +263,13 @@ describe("sending flows", async function () {
             superToken: daix.address,
             account: TradeableCashflow.address,
             providerOrSigner: superSigner
-          });
+        });
 
-          const appFinalBalance = await daix.balanceOf({
+        const appFinalBalance = await daix.balanceOf({
             account: TradeableCashflow.address,
             providerOrSigner: superSigner
-        });     
-        
+        });
+
         const updatedOwnerFlowRate2 = await sf.cfaV1.getNetFlow({
             superToken: daix.address,
             account: accounts[1].address,
@@ -293,56 +293,56 @@ describe("sending flows", async function () {
         );
     })
 
-//need deletion case
-        
+    //need deletion case
+
 });
 
-    describe("Changing owner", async function () {
-        it("Case #5 - When the owner changes, the flow changes", async () => {
-        
-            const initialOwnerFlowRate = await sf.cfaV1.getNetFlow({
-                superToken: daix.address,
-                account: accounts[1].address,
-                providerOrSigner: superSigner
-            });
+describe("Changing owner", async function () {
+    it("Case #5 - When the owner changes, the flow changes", async () => {
 
-            console.log("initial owner ", await TradeableCashflow.ownerOf(1));
-            console.log("initial owner flowRate flowRate: ", initialOwnerFlowRate);
-            
-            const newOwnerFlowRate = await sf.cfaV1.getNetFlow({
-                superToken: daix.address,
-                account: accounts[3].address,
-                providerOrSigner: superSigner
-            });
-
-            console.log("new owner flowRate: ", newOwnerFlowRate);
-            assert.equal(0, newOwnerFlowRate, "new owner shouldn't have flow yet");
-            
-            await TradeableCashflow.connect(accounts[1]).transferFrom(accounts[1].address, accounts[3].address, 1);
-
-            console.log("new owner, ", await TradeableCashflow.ownerOf(1));
-
-            const initialOwnerUpdatedFlowRate = await sf.cfaV1.getNetFlow({
-                superToken: daix.address,
-                account: accounts[1].address,
-                providerOrSigner: superSigner
-            });
-
-            console.log("initial owner updated flow rate", initialOwnerUpdatedFlowRate);
-
-            assert.equal(initialOwnerUpdatedFlowRate, 0, "old owner should no longer be receiving flows");
-
-            const newOwnerUpdatedFlowRate = await sf.cfaV1.getNetFlow({
-                superToken: daix.address,
-                account: accounts[3].address,
-                providerOrSigner: superSigner
-            });
-
-            console.log('new owner updated flowrate', newOwnerUpdatedFlowRate);
-
-            assert.equal(newOwnerUpdatedFlowRate, initialOwnerFlowRate, "new receiver should be getting all of flow into app")
+        const initialOwnerFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: accounts[1].address,
+            providerOrSigner: superSigner
         });
+
+        console.log("initial owner ", await TradeableCashflow.ownerOf(1));
+        console.log("initial owner flowRate flowRate: ", initialOwnerFlowRate);
+
+        const newOwnerFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: accounts[3].address,
+            providerOrSigner: superSigner
+        });
+
+        console.log("new owner flowRate: ", newOwnerFlowRate);
+        assert.equal(0, newOwnerFlowRate, "new owner shouldn't have flow yet");
+
+        await TradeableCashflow.connect(accounts[1]).transferFrom(accounts[1].address, accounts[3].address, 1);
+
+        console.log("new owner, ", await TradeableCashflow.ownerOf(1));
+
+        const initialOwnerUpdatedFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: accounts[1].address,
+            providerOrSigner: superSigner
+        });
+
+        console.log("initial owner updated flow rate", initialOwnerUpdatedFlowRate);
+
+        assert.equal(initialOwnerUpdatedFlowRate, 0, "old owner should no longer be receiving flows");
+
+        const newOwnerUpdatedFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: accounts[3].address,
+            providerOrSigner: superSigner
+        });
+
+        console.log('new owner updated flowrate', newOwnerUpdatedFlowRate);
+
+        assert.equal(newOwnerUpdatedFlowRate, initialOwnerFlowRate, "new receiver should be getting all of flow into app")
     });
+});
 
 
 

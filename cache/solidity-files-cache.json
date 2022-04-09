@@ -1,53 +1,6 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\contracts\\RedirectAll.sol": {
-      "lastModificationDate": 1649499896274,
-      "contentHash": "0e10829cacb7ed051b88cc84ede48187",
-      "sourceName": "contracts/RedirectAll.sol",
-      "solcConfig": {
-        "version": "0.8.13",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol",
-        "@superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol",
-        "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol",
-        "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol"
-      ],
-      "versionPragmas": [
-        "0.8.13"
-      ],
-      "artifacts": [
-        "RedirectAll"
-      ]
-    },
     "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\node_modules\\@superfluid-finance\\ethereum-contracts\\contracts\\interfaces\\superfluid\\ISuperfluid.sol": {
       "lastModificationDate": 1649500466842,
       "contentHash": "741c5bf7054694d8564c45169b1def4a",
@@ -723,51 +676,6 @@
         "ERC20WithTokenInfo"
       ]
     },
-    "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\contracts\\TradeableCashflow.sol": {
-      "lastModificationDate": 1649499896274,
-      "contentHash": "123f34471599c4bd0fad31cf2711fc1b",
-      "sourceName": "contracts/TradeableCashflow.sol",
-      "solcConfig": {
-        "version": "0.8.13",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [
-        "./RedirectAll.sol",
-        "@openzeppelin/contracts/token/ERC721/ERC721.sol"
-      ],
-      "versionPragmas": [
-        "0.8.13"
-      ],
-      "artifacts": [
-        "TradeableCashflow"
-      ]
-    },
     "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
       "lastModificationDate": 1649500465702,
       "contentHash": "49295810dc45f300e5f84b4b50d88a59",
@@ -1158,6 +1066,53 @@
       ],
       "artifacts": [
         "IERC165"
+      ]
+    },
+    "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\contracts\\SuperQuadraticFunding.sol": {
+      "lastModificationDate": 1649532313675,
+      "contentHash": "d83c6f07e7bf1d610a58cc45709f7ae5",
+      "sourceName": "contracts/SuperQuadraticFunding.sol",
+      "solcConfig": {
+        "version": "0.8.13",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol",
+        "@superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol",
+        "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol",
+        "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol"
+      ],
+      "versionPragmas": [
+        ">=0.8.0"
+      ],
+      "artifacts": [
+        "SuperQuadraticFunding"
       ]
     }
   }
