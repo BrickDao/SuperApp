@@ -1069,8 +1069,8 @@
       ]
     },
     "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\contracts\\SuperQuadraticFunding.sol": {
-      "lastModificationDate": 1649554569263,
-      "contentHash": "cae30c10c5f86be360ff924ad3c2888c",
+      "lastModificationDate": 1649557386458,
+      "contentHash": "9d5e014abd1feeeaeca4e4d514b93aa0",
       "sourceName": "contracts/SuperQuadraticFunding.sol",
       "solcConfig": {
         "version": "0.8.13",
@@ -1106,13 +1106,58 @@
         "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol",
         "@superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol",
         "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol",
-        "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol"
+        "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol",
+        "@openzeppelin/contracts/access/Ownable.sol"
       ],
       "versionPragmas": [
         ">=0.8.0"
       ],
       "artifacts": [
         "SuperQuadraticFunding"
+      ]
+    },
+    "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+      "lastModificationDate": 1649500465940,
+      "contentHash": "8398972af73b4e9e5ff3b31cad86234f",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
+      "solcConfig": {
+        "version": "0.8.13",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Ownable"
       ]
     }
   }

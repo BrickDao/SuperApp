@@ -9,7 +9,9 @@ import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/c
 
 import {SuperAppBase} from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol";
 
-contract SuperQuadraticFunding is SuperAppBase {
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+contract SuperQuadraticFunding is SuperAppBase, Ownable {
     using CFAv1Library for CFAv1Library.InitData;
 
     //initialize cfaV1 variable
@@ -43,13 +45,9 @@ contract SuperQuadraticFunding is SuperAppBase {
         cfaV1 = CFAv1Library.InitData(_host, _cfa);
 
         uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL;
-        // |
-        //     // change from 'before agreement stuff to after agreement
-        //     SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
-        //     SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
-        //     SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
-
         _host.registerApp(configWord);
+
+        transferOwnership(msg.sender);
     }
 
     event Flow(address _from, int96 _flowrate1, int96 _flowrate2);
@@ -62,14 +60,18 @@ contract SuperQuadraticFunding is SuperAppBase {
         _;
     }
 
-    function addCharity(address charity) external {
+    function addCharity(address charity) external onlyOwner {
         require(!charities[charity]);
         charities[charity] = true;
     }
 
-    function removeCharity(address charity) external isValidCharity(charity) {
+    function removeCharity(address charity)
+        external
+        isValidCharity(charity)
+        onlyOwner
+    {
         //remove flows cancel all Subscribtions that go into the SuperApp that are going to the charity
-        deleteFlow(address(this), charity, _acceptedToken);
+        cfaV1.deleteFlow(address(this), charity, _acceptedToken);
         charities[charity] = false;
     }
 
