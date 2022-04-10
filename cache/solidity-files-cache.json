@@ -1069,8 +1069,8 @@
       ]
     },
     "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\contracts\\SuperQuadraticFunding.sol": {
-      "lastModificationDate": 1649532926526,
-      "contentHash": "aa6ea145ac238acbc30e22148ecbf4b2",
+      "lastModificationDate": 1649554569263,
+      "contentHash": "cae30c10c5f86be360ff924ad3c2888c",
       "sourceName": "contracts/SuperQuadraticFunding.sol",
       "solcConfig": {
         "version": "0.8.13",

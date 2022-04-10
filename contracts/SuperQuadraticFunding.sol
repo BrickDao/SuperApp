@@ -52,6 +52,8 @@ contract SuperQuadraticFunding is SuperAppBase {
         _host.registerApp(configWord);
     }
 
+    event Flow(address _from, int96 _flowrate1, int96 _flowrate2);
+
     /**************************************************************************
      * Charity Managment
      *************************************************************************/
@@ -67,6 +69,8 @@ contract SuperQuadraticFunding is SuperAppBase {
 
     function removeCharity(address charity) external isValidCharity(charity) {
         //remove flows cancel all Subscribtions that go into the SuperApp that are going to the charity
+        deleteFlow(address(this), charity, _acceptedToken);
+        charities[charity] = false;
     }
 
     /**************************************************************************
@@ -74,8 +78,12 @@ contract SuperQuadraticFunding is SuperAppBase {
      *************************************************************************/
 
     //this will reduce the flow or delete it
-    function _reduceFlow(address to, int96 flowRate) internal {
-        if (to == address(this)) return;
+    function _reduceFlow(
+        address to,
+        int96 flowRate,
+        bytes memory ctx
+    ) internal returns (bytes memory) {
+        if (to == address(this)) return ctx;
 
         (, int96 outFlowRate, , ) = _cfa.getFlow(
             _acceptedToken,
@@ -84,18 +92,29 @@ contract SuperQuadraticFunding is SuperAppBase {
         );
 
         if (outFlowRate == flowRate) {
-            cfaV1.deleteFlow(address(this), to, _acceptedToken);
+            return
+                cfaV1.deleteFlowWithCtx(ctx, address(this), to, _acceptedToken);
         } else if (outFlowRate > flowRate) {
             // reduce the outflow by flowRate;
             // shouldn't overflow, because we just checked that it was bigger.
-            cfaV1.updateFlow(to, _acceptedToken, outFlowRate - flowRate);
+            return
+                cfaV1.updateFlowWithCtx(
+                    ctx,
+                    to,
+                    _acceptedToken,
+                    outFlowRate - flowRate
+                );
         }
         // won't do anything if outFlowRate < flowRate
     }
 
     //this will increase the flow or create it
-    function _increaseFlow(address to, int96 flowRate) internal {
-        if (to == address(0)) return;
+    function _increaseFlow(
+        address to,
+        int96 flowRate,
+        bytes memory ctx
+    ) internal returns (bytes memory) {
+        if (to == address(0)) return ctx;
 
         (, int96 outFlowRate, , ) = _cfa.getFlow(
             _acceptedToken,
@@ -103,10 +122,16 @@ contract SuperQuadraticFunding is SuperAppBase {
             to
         ); //returns 0 if stream doesn't exist
         if (outFlowRate == 0) {
-            cfaV1.createFlow(to, _acceptedToken, flowRate);
+            return cfaV1.createFlowWithCtx(ctx, to, _acceptedToken, flowRate);
         } else {
             // increase the outflow by flowRates[tokenId]
-            cfaV1.updateFlow(to, _acceptedToken, outFlowRate + flowRate);
+            return
+                cfaV1.updateFlowWithCtx(
+                    ctx,
+                    to,
+                    _acceptedToken,
+                    outFlowRate + flowRate
+                );
         }
     }
 
@@ -158,16 +183,17 @@ contract SuperQuadraticFunding is SuperAppBase {
         );
         (, int96 newFlowRate, , ) = _cfa.getFlow(
             _acceptedToken,
-            address(this),
-            user
+            user,
+            address(this)
         );
-
-        _increaseFlow(charity, newFlowRate);
+        require(newFlowRate > 0, "SQF : Stream was not created");
+        // emit Flow(charity, newFlowRate, newFlowRate);
+        newCtx = _increaseFlow(charity, newFlowRate, _ctx);
         charityToFlowRate[charity] = charityToFlowRate[charity] + newFlowRate;
         userToFlowRate[user] = newFlowRate;
         userToCharity[user] = charity;
 
-        return _ctx;
+        return newCtx;
     }
 
     function beforeAgreementUpdated(
@@ -216,15 +242,15 @@ contract SuperQuadraticFunding is SuperAppBase {
         );
         (, int96 newFlowRate, , ) = _cfa.getFlow(
             _acceptedToken,
-            address(this),
-            user
+            user,
+            address(this)
         );
 
         //User Picks new Charity
         address oldCharity = userToCharity[user];
         if (userToCharity[user] != newCharity) {
-            _reduceFlow(oldCharity, oldFlowRate);
-            _increaseFlow(newCharity, newFlowRate);
+            newCtx = _reduceFlow(oldCharity, oldFlowRate, _ctx);
+            newCtx = _increaseFlow(newCharity, newFlowRate, newCtx);
 
             userToCharity[user] = newCharity;
             charityToFlowRate[oldCharity] =
@@ -234,15 +260,15 @@ contract SuperQuadraticFunding is SuperAppBase {
                 charityToFlowRate[newCharity] +
                 newFlowRate;
         }
-        //User donates to the  charity
+        //User donates to the old charity
         else {
-            int96 flowRateChange = oldFlowRate - newFlowRate;
+            int96 flowRateChange = newFlowRate - oldFlowRate;
             if (flowRateChange > 0) {
-                _increaseFlow(newCharity, flowRateChange);
+                newCtx = _increaseFlow(newCharity, flowRateChange, _ctx);
             }
             //flow is redduced or deleted
             else {
-                _reduceFlow(newCharity, flowRateChange);
+                newCtx = _reduceFlow(newCharity, flowRateChange * -1, _ctx);
             }
             charityToFlowRate[newCharity] =
                 charityToFlowRate[newCharity] +
@@ -251,7 +277,7 @@ contract SuperQuadraticFunding is SuperAppBase {
 
         userToFlowRate[user] = newFlowRate;
 
-        return _ctx;
+        return newCtx;
     }
 
     function beforeAgreementTerminated(
@@ -282,11 +308,12 @@ contract SuperQuadraticFunding is SuperAppBase {
         address user = _host.decodeCtx(_ctx).msgSender;
         address charity = userToCharity[user];
         int96 flowRate = userToFlowRate[user];
-        _reduceFlow(charity, flowRate);
+        newCtx = _reduceFlow(charity, flowRate, _ctx);
 
         charityToFlowRate[charity] = charityToFlowRate[charity] - flowRate;
         userToFlowRate[user] = 0;
         userToCharity[user] = address(0);
+        return newCtx;
     }
 
     function _isSameToken(ISuperToken superToken) private view returns (bool) {

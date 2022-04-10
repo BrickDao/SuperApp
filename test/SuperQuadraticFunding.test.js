@@ -104,7 +104,7 @@ beforeEach(async function () {
 
 describe("sending flows", async function () {
 
-    it("Case #1 - Alice sends a flow", async () => {
+    it("Case #1 - Alice sends a flow to charity", async () => {
 
         console.log(SuperQuadraticFunding.address);
 
@@ -132,9 +132,9 @@ describe("sending flows", async function () {
             providerOrSigner: superSigner
         });
 
-        const ownerFlowRate = await sf.cfaV1.getNetFlow({
+        const charityFlowRate = await sf.cfaV1.getNetFlow({
             superToken: daix.address,
-            account: accounts[1].address,
+            account: charityAddress1,
             providerOrSigner: superSigner
         })
 
@@ -144,7 +144,7 @@ describe("sending flows", async function () {
         });
 
         assert.equal(
-            ownerFlowRate, "100000000", "owner not receiving 100% of flowRate"
+            charityFlowRate, "100000000", "charity not receiving 100% of flowRate"
         );
 
         assert.equal(
@@ -160,167 +160,315 @@ describe("sending flows", async function () {
         );
     });
 
-    //     it("Case #2 - Alice upates flows to the contract", async () => {
+    it("Case #2 - Alice upates flows to charity", async () => {
 
-    //         const appInitialBalance = await daix.balanceOf({
-    //             account: SuperQuadraticFunding.address,
-    //             providerOrSigner: accounts[0]
-    //         });
+        const appInitialBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: accounts[0]
+        });
 
-    //         const initialOwnerFlowRate = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: accounts[1].address,
-    //             providerOrSigner: superSigner
-    //         })
+        const initialCharityFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress1,
+            providerOrSigner: superSigner
+        })
 
-    //         console.log('initial owner flow rate: ', initialOwnerFlowRate);
+        console.log('initial charity flow rate: ', initialCharityFlowRate);
 
-    //         const appFlowRate = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: SuperQuadraticFunding.address,
-    //             providerOrSigner: superSigner
-    //         });
+        const appFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
 
-    //         const ownerFlowRate = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: accounts[1].address,
-    //             providerOrSigner: superSigner
-    //         })
+        const senderFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: accounts[0].address,
+            providerOrSigner: superSigner
+        })
+        console.log('sender flow rate: ', senderFlowRate);
+        console.log('sqf address: ', SuperQuadraticFunding.address);
+        console.log('app flow rate: ', appFlowRate);
 
-    //         const senderFlowRate = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: accounts[0].address,
-    //             providerOrSigner: superSigner
-    //         })
-    //         console.log('sender flow rate: ', senderFlowRate);
-    //         console.log('tcf address: ', SuperQuadraticFunding.address);
-    //         console.log('app flow rate: ', appFlowRate);
+        var cxt = web3.eth.abi.encodeParameter('address', charityAddress1.toString())
 
+        const updateFlowOperation = sf.cfaV1.updateFlow({
+            receiver: SuperQuadraticFunding.address,
+            superToken: daix.address,
+            flowRate: "200000000",
+            userData: cxt
+        })
 
-    //         const updateFlowOperation = sf.cfaV1.updateFlow({
-    //             receiver: SuperQuadraticFunding.address,
-    //             superToken: daix.address,
-    //             flowRate: "200000000",
-    //         })
+        const updateFlowTxn = await updateFlowOperation.exec(accounts[0]);
 
-    //         const updateFlowTxn = await updateFlowOperation.exec(accounts[0]);
+        const updateFlowReceipt = await updateFlowTxn.wait();
 
-    //         const updateFlowReceipt = await updateFlowTxn.wait();
+        const appFinalBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
 
-    //         const appFinalBalance = await daix.balanceOf({
-    //             account: SuperQuadraticFunding.address,
-    //             providerOrSigner: superSigner
-    //         });
+        const updatedCharityFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress1,
+            providerOrSigner: superSigner
+        });
 
-    //         const updatedOwnerFlowRate = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: accounts[1].address,
-    //             providerOrSigner: superSigner
-    //         });
+        assert.equal(
+            updatedCharityFlowRate, "200000000", "charity not receiving correct updated flowRate"
+        );
 
-    //         assert.equal(
-    //             updatedOwnerFlowRate, "200000000", "owner not receiving correct updated flowRate"
-    //         );
+        assert.equal(
+            appFlowRate,
+            0,
+            "App flowRate not zero"
+        );
 
-    //         assert.equal(
-    //             appFlowRate,
-    //             0,
-    //             "App flowRate not zero"
-    //         );
+        assert.equal(
+            appInitialBalance.toString(),
+            appFinalBalance.toString(),
+            "balances aren't equal"
+        );
 
-    //         assert.equal(
-    //             appInitialBalance.toString(),
-    //             appFinalBalance.toString(),
-    //             "balances aren't equal"
-    //         );
+    });
 
-    //     });
+    it('Case 3: multiple users send flows to the same charity', async () => {
+        const appInitialBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: accounts[0]
+        });
 
-    //     it('Case 3: multiple users send flows into contract', async () => {
-    //         const appInitialBalance = await daix.balanceOf({
-    //             account: SuperQuadraticFunding.address,
-    //             providerOrSigner: accounts[0]
-    //         });
+        const initialCharityFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress1,
+            providerOrSigner: superSigner
+        })
 
-    //         const initialOwnerFlowRate = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: accounts[1].address,
-    //             providerOrSigner: superSigner
-    //         })
+        console.log('initial charity flow rate: ', initialCharityFlowRate);
 
-    //         console.log('initial owner flow rate: ', initialOwnerFlowRate);
+        console.log(accounts[2].address);
 
-    //         console.log(accounts[2].address);
+        const daixTransferOperation = daix.transfer({
+            receiver: accounts[2].address,
+            amount: ethers.utils.parseEther("500")
+        });
 
-    //         const daixTransferOperation = daix.transfer({
-    //             receiver: accounts[2].address,
-    //             amount: ethers.utils.parseEther("500")
-    //         });
+        await daixTransferOperation.exec(accounts[0]);
 
-    //         await daixTransferOperation.exec(accounts[0]);
+        const account2Balance = await daix.balanceOf({ account: accounts[2].address, providerOrSigner: superSigner });
+        console.log('account 2 balance ', account2Balance);
 
-    //         const account2Balance = await daix.balanceOf({ account: accounts[2].address, providerOrSigner: superSigner });
-    //         console.log('account 2 balance ', account2Balance);
+        var cxt = web3.eth.abi.encodeParameter('address', charityAddress1.toString())
 
-    //         const createFlowOperation2 = sf.cfaV1.createFlow({
-    //             receiver: SuperQuadraticFunding.address,
-    //             superToken: daix.address,
-    //             flowRate: "100000000",
-    //         })
+        const createFlowOperation2 = sf.cfaV1.createFlow({
+            receiver: SuperQuadraticFunding.address,
+            superToken: daix.address,
+            flowRate: "100000000",
+            userData: cxt
+        })
 
-    //         const createFlowOperation2Txn = await createFlowOperation2.exec(accounts[2]);
+        const createFlowOperation2Txn = await createFlowOperation2.exec(accounts[2]);
 
-    //         const createFlowOperation2Receipt = await createFlowOperation2Txn.wait();
+        const createFlowOperation2Receipt = await createFlowOperation2Txn.wait();
 
-    //         const appFlowRate = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: SuperQuadraticFunding.address,
-    //             providerOrSigner: superSigner
-    //         });
+        const appFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
 
-    //         const appFinalBalance = await daix.balanceOf({
-    //             account: SuperQuadraticFunding.address,
-    //             providerOrSigner: superSigner
-    //         });
+        const appFinalBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
 
-    //         const updatedOwnerFlowRate2 = await sf.cfaV1.getNetFlow({
-    //             superToken: daix.address,
-    //             account: accounts[1].address,
-    //             providerOrSigner: superSigner
-    //         });
+        const updatedOwnerFlowRate2 = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress1,
+            providerOrSigner: superSigner
+        });
 
-    //         assert.equal(
-    //             updatedOwnerFlowRate2, "300000000", "owner not receiving correct updated flowRate"
-    //         );
+        assert.equal(
+            updatedOwnerFlowRate2, "300000000", "owner not receiving correct updated flowRate"
+        );
 
-    //         assert.equal(
-    //             appFlowRate,
-    //             0,
-    //             "App flowRate not zero"
-    //         );
+        assert.equal(
+            appFlowRate,
+            0,
+            "App flowRate not zero"
+        );
 
-    //         assert.equal(
-    //             appInitialBalance.toString(),
-    //             appFinalBalance.toString(),
-    //             "balances aren't equal"
-    //         );
-    //     })
+        assert.equal(
+            appInitialBalance.toString(),
+            appFinalBalance.toString(),
+            "balances aren't equal"
+        );
+    })
 
-    //     //need deletion case
+    it("Case #4 - Bob switches from charity1 to charity2", async () => {
+
+        const appInitialBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: accounts[0]
+        });
+
+        const initialCharityFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress1,
+            providerOrSigner: superSigner
+        })
+
+        console.log('initial charity flow rate: ', initialCharityFlowRate);
+
+        const appFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
+
+        const senderFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: accounts[2].address,
+            providerOrSigner: superSigner
+        })
+        console.log('sender flow rate: ', senderFlowRate);
+        console.log('sqf address: ', SuperQuadraticFunding.address);
+        console.log('app flow rate: ', appFlowRate);
+
+        var cxt = web3.eth.abi.encodeParameter('address', charityAddress2.toString())
+
+        const updateFlowOperation = sf.cfaV1.updateFlow({
+            receiver: SuperQuadraticFunding.address,
+            superToken: daix.address,
+            flowRate: "150000000",
+            userData: cxt
+        })
+
+        const updateFlowTxn = await updateFlowOperation.exec(accounts[2]);
+
+        const updateFlowReceipt = await updateFlowTxn.wait();
+
+        const appFinalBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
+
+        const updatedCharityFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress1,
+            providerOrSigner: superSigner
+        });
+
+        const updatedCharityFlowRate2 = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress2,
+            providerOrSigner: superSigner
+        });
+
+        assert.equal(
+            updatedCharityFlowRate, "200000000", "charity not receiving correct updated flowRate"
+        );
+
+        assert.equal(
+            updatedCharityFlowRate2, "150000000", "charity not receiving correct updated flowRate"
+        );
+
+        assert.equal(
+            appFlowRate,
+            0,
+            "App flowRate not zero"
+        );
+
+        assert.equal(
+            appInitialBalance.toString(),
+            appFinalBalance.toString(),
+            "balances aren't equal"
+        );
+
+    });
+
+    it("Case #5 - Bob stops the stream to charity2", async () => {
+
+        const appInitialBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: accounts[0]
+        });
+
+        const initialCharity2FlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress2,
+            providerOrSigner: superSigner
+        })
+
+        console.log('initial charity flow rate: ', initialCharity2FlowRate);
+
+        const appFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
+
+        const senderFlowRate = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: accounts[2].address,
+            providerOrSigner: superSigner
+        })
+        console.log('sender flow rate: ', senderFlowRate);
+        console.log('sqf address: ', SuperQuadraticFunding.address);
+        console.log('app flow rate: ', appFlowRate);
+
+        const deleteFlowOperation = sf.cfaV1.deleteFlow({
+            sender: accounts[2].address,
+            receiver: SuperQuadraticFunding.address,
+            superToken: daix.address,
+        })
+
+        const deleteFlowTxn = await deleteFlowOperation.exec(accounts[2]);
+
+        const deleteFlowReceipt = await deleteFlowTxn.wait();
+
+        const appFinalBalance = await daix.balanceOf({
+            account: SuperQuadraticFunding.address,
+            providerOrSigner: superSigner
+        });
+
+        const updatedCharityFlowRate2 = await sf.cfaV1.getNetFlow({
+            superToken: daix.address,
+            account: charityAddress2,
+            providerOrSigner: superSigner
+        });
+
+        assert.equal(
+            updatedCharityFlowRate2, "0", "charity not receiving correct updated flowRate"
+        );
+
+        assert.equal(
+            appFlowRate,
+            0,
+            "App flowRate not zero"
+        );
+
+        assert.equal(
+            appInitialBalance.toString(),
+            appFinalBalance.toString(),
+            "balances aren't equal"
+        );
+
+    });
 
     // });
 
     // describe("Changing owner", async function () {
     //     it("Case #5 - When the owner changes, the flow changes", async () => {
 
-    //         const initialOwnerFlowRate = await sf.cfaV1.getNetFlow({
+    //         const initialCharityFlowRate = await sf.cfaV1.getNetFlow({
     //             superToken: daix.address,
     //             account: accounts[1].address,
     //             providerOrSigner: superSigner
     //         });
 
     //         console.log("initial owner ", await SuperQuadraticFunding.ownerOf(1));
-    //         console.log("initial owner flowRate flowRate: ", initialOwnerFlowRate);
+    //         console.log("initial owner flowRate flowRate: ", initialCharityFlowRate);
 
     //         const newOwnerFlowRate = await sf.cfaV1.getNetFlow({
     //             superToken: daix.address,
@@ -353,7 +501,7 @@ describe("sending flows", async function () {
 
     //         console.log('new owner updated flowrate', newOwnerUpdatedFlowRate);
 
-    //         assert.equal(newOwnerUpdatedFlowRate, initialOwnerFlowRate, "new receiver should be getting all of flow into app")
+    //         assert.equal(newOwnerUpdatedFlowRate, initialCharityFlowRate, "new receiver should be getting all of flow into app")
     //     });
 });
 
