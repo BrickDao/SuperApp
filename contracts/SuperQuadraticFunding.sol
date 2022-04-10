@@ -80,7 +80,9 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
     }
 
     function addCharity(address charity) external onlyOwner {
-        require(!isSubscribing[charity]);
+        require(!isSubscribing[charity], "SQF: Charity already added");
+
+        _updateVotes(charity, 0, new bytes(0));
         isSubscribing[charity] = true;
     }
 
@@ -89,6 +91,7 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         isValidCharity(charity)
         onlyOwner
     {
+        //Todo
         //remove flows cancel all Subscribtions that go into the SuperApp that are going to the charity
         cfaV1.deleteFlow(address(this), charity, _acceptedToken);
         isSubscribing[charity] = false;
@@ -159,36 +162,53 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
     /**************************************************************************
      * Distribution Managment IDA
      *************************************************************************/
-    function _checkSubscription(
-        ISuperToken superToken,
-        bytes calldata ctx,
-        bytes32 agreementId
-    ) private {
-        ISuperfluid.Context memory context = _host.decodeCtx(ctx);
-        // only interested in the subscription approval callbacks
-        if (
-            context.agreementSelector ==
-            IInstantDistributionAgreementV1.approveSubscription.selector
-        ) {
-            address publisher;
-            uint32 indexId;
-            bool approved;
-            uint128 units;
-            uint256 pendingDistribution;
-            (publisher, indexId, approved, units, pendingDistribution) = _ida
-                .getSubscriptionByID(superToken, agreementId);
+    /// @dev Distribute `amount` of cash among all token holders
+    function distribute() external onlyOwner {
+        (int256 cashAmount, , ) = _acceptedToken.realtimeBalanceOf(
+            address(this),
+            block.timestamp
+        );
 
-            // sanity checks for testing purpose
-            require(publisher == address(this), "DRT: publisher mismatch");
-            //require(indexId == INDEX_ID, "DRT: publisher mismatch");
-
-            if (approved) {
-                isSubscribing[
-                    context.msgSender /* subscriber */
-                ] = true;
-            }
-        }
+        require(cashAmount > 0, "SQF: You need Money to distribute");
+        (uint256 actualCashAmount, ) = _ida.calculateDistribution(
+            _acceptedToken,
+            address(this),
+            _INDEX_ID,
+            uint256(cashAmount)
+        );
+        idaV1.distribute(_acceptedToken, _INDEX_ID, actualCashAmount);
     }
+
+    // function _checkSubscription(
+    //     ISuperToken superToken,
+    //     bytes calldata ctx,
+    //     bytes32 agreementId
+    // ) private {
+    //     ISuperfluid.Context memory context = _host.decodeCtx(ctx);
+    //     // only interested in the subscription approval callbacks
+    //     if (
+    //         context.agreementSelector ==
+    //         IInstantDistributionAgreementV1.approveSubscription.selector
+    //     ) {
+    //         address publisher;
+    //         uint32 indexId;
+    //         bool approved;
+    //         uint128 units;
+    //         uint256 pendingDistribution;
+    //         (publisher, indexId, approved, units, pendingDistribution) = _ida
+    //             .getSubscriptionByID(superToken, agreementId);
+
+    //         // sanity checks for testing purpose
+    //         require(publisher == address(this), "DRT: publisher mismatch");
+    //         //require(indexId == INDEX_ID, "DRT: publisher mismatch");
+
+    //         if (approved) {
+    //             isSubscribing[
+    //                 context.msgSender /* subscriber */
+    //             ] = true;
+    //         }
+    //     }
+    // }
 
     function sqrt(uint128 x) public pure returns (uint128 y) {
         uint128 z = (x + 1) / 2;
@@ -297,6 +317,9 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         onlyHost
         returns (bytes memory newCtx)
     {
+        if (_isIDAv1(_agreementClass)) {
+            return new bytes(0);
+        }
         (address user, address charity) = abi.decode(
             _cbdata,
             (address, address)
@@ -362,6 +385,9 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         onlyHost
         returns (bytes memory newCtx)
     {
+        if (_isIDAv1(_agreementClass)) {
+            return new bytes(0);
+        }
         (address user, address newCharity, int96 oldFlowRate) = abi.decode(
             _cbdata,
             (address, address, int96)
