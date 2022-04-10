@@ -1069,8 +1069,8 @@
       ]
     },
     "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\contracts\\SuperQuadraticFunding.sol": {
-      "lastModificationDate": 1649557386458,
-      "contentHash": "9d5e014abd1feeeaeca4e4d514b93aa0",
+      "lastModificationDate": 1649569747869,
+      "contentHash": "30dc9c6e617fdeff3550521c2a7b50b3",
       "sourceName": "contracts/SuperQuadraticFunding.sol",
       "solcConfig": {
         "version": "0.8.13",
@@ -1105,7 +1105,9 @@
       "imports": [
         "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol",
         "@superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol",
+        "@superfluid-finance/ethereum-contracts/contracts/apps/IDAv1Library.sol",
         "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol",
+        "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol",
         "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol",
         "@openzeppelin/contracts/access/Ownable.sol"
       ],
@@ -1158,6 +1160,96 @@
       ],
       "artifacts": [
         "Ownable"
+      ]
+    },
+    "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\node_modules\\@superfluid-finance\\ethereum-contracts\\contracts\\apps\\IDAv1Library.sol": {
+      "lastModificationDate": 1649500466811,
+      "contentHash": "51d4cfe16ee98c45fa8e41d5a1d28fa8",
+      "sourceName": "@superfluid-finance/ethereum-contracts/contracts/apps/IDAv1Library.sol",
+      "solcConfig": {
+        "version": "0.8.13",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../interfaces/superfluid/ISuperfluid.sol",
+        "../interfaces/agreements/IInstantDistributionAgreementV1.sol"
+      ],
+      "versionPragmas": [
+        ">=0.8.0"
+      ],
+      "artifacts": [
+        "IDAv1Library"
+      ]
+    },
+    "D:\\Gabo\\Documents\\soliditycoding\\SuperApp\\node_modules\\@superfluid-finance\\ethereum-contracts\\contracts\\interfaces\\agreements\\IInstantDistributionAgreementV1.sol": {
+      "lastModificationDate": 1649500466816,
+      "contentHash": "228576650f8fabe214a9f38b33d5f013",
+      "sourceName": "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol",
+      "solcConfig": {
+        "version": "0.8.13",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [
+        "../superfluid/ISuperAgreement.sol",
+        "../superfluid/ISuperfluidToken.sol"
+      ],
+      "versionPragmas": [
+        ">=0.8.0"
+      ],
+      "artifacts": [
+        "IInstantDistributionAgreementV1"
       ]
     }
   }

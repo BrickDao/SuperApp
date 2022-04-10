@@ -4,8 +4,9 @@ pragma solidity >=0.8.0;
 import {ISuperfluid, ISuperToken, ISuperApp, ISuperAgreement, SuperAppDefinitions} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol"; //"@superfluid-finance/ethereum-monorepo/packages/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 
 import {CFAv1Library} from "@superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol";
-
+import {IDAv1Library} from "@superfluid-finance/ethereum-contracts/contracts/apps/IDAv1Library.sol";
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
+import {IInstantDistributionAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
 
 import {SuperAppBase} from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol";
 
@@ -13,17 +14,24 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SuperQuadraticFunding is SuperAppBase, Ownable {
     using CFAv1Library for CFAv1Library.InitData;
+    using IDAv1Library for IDAv1Library.InitData;
 
-    //initialize cfaV1 variable
     CFAv1Library.InitData public cfaV1;
+    IDAv1Library.InitData public idaV1;
+
+    IConstantFlowAgreementV1 private _cfa; // the stored constant flow agreement class address
+    IInstantDistributionAgreementV1 private _ida; // the stored instant distribution agreement class address
+    uint32 internal constant _INDEX_ID = 0;
 
     ISuperfluid private _host; // host
-    IConstantFlowAgreementV1 private _cfa; // the stored constant flow agreement class address
     ISuperToken private _acceptedToken; // accepted token
-    mapping(address => int96) public charityToFlowRate;
-    mapping(address => bool) public charities;
+
+    // use callbacks to track approved subscriptions
+    mapping(address => bool) public isSubscribing;
     mapping(address => address) public userToCharity;
     mapping(address => int96) public userToFlowRate;
+    mapping(address => int96) public charityToFlowRate;
+    mapping(address => uint128) public charityToRootVotes;
 
     constructor(ISuperfluid host, ISuperToken acceptedToken) {
         assert(address(host) != address(0));
@@ -40,9 +48,20 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
                 )
             )
         );
+        _ida = IInstantDistributionAgreementV1(
+            address(
+                host.getAgreementClass(
+                    keccak256(
+                        "org.superfluid-finance.agreements.InstantDistributionAgreement.v1"
+                    )
+                )
+            )
+        );
         _acceptedToken = acceptedToken;
 
         cfaV1 = CFAv1Library.InitData(_host, _cfa);
+        idaV1 = IDAv1Library.InitData(_host, _ida);
+        idaV1.createIndex(_acceptedToken, _INDEX_ID);
 
         uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL;
         _host.registerApp(configWord);
@@ -56,13 +75,13 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
      * Charity Managment
      *************************************************************************/
     modifier isValidCharity(address charity) {
-        require(charities[charity]);
+        require(isSubscribing[charity]);
         _;
     }
 
     function addCharity(address charity) external onlyOwner {
-        require(!charities[charity]);
-        charities[charity] = true;
+        require(!isSubscribing[charity]);
+        isSubscribing[charity] = true;
     }
 
     function removeCharity(address charity)
@@ -72,7 +91,7 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
     {
         //remove flows cancel all Subscribtions that go into the SuperApp that are going to the charity
         cfaV1.deleteFlow(address(this), charity, _acceptedToken);
-        charities[charity] = false;
+        isSubscribing[charity] = false;
     }
 
     /**************************************************************************
@@ -84,7 +103,7 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         address to,
         int96 flowRate,
         bytes memory ctx
-    ) internal returns (bytes memory) {
+    ) internal returns (bytes memory newCtx) {
         if (to == address(this)) return ctx;
 
         (, int96 outFlowRate, , ) = _cfa.getFlow(
@@ -138,6 +157,101 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
     }
 
     /**************************************************************************
+     * Distribution Managment IDA
+     *************************************************************************/
+    function _checkSubscription(
+        ISuperToken superToken,
+        bytes calldata ctx,
+        bytes32 agreementId
+    ) private {
+        ISuperfluid.Context memory context = _host.decodeCtx(ctx);
+        // only interested in the subscription approval callbacks
+        if (
+            context.agreementSelector ==
+            IInstantDistributionAgreementV1.approveSubscription.selector
+        ) {
+            address publisher;
+            uint32 indexId;
+            bool approved;
+            uint128 units;
+            uint256 pendingDistribution;
+            (publisher, indexId, approved, units, pendingDistribution) = _ida
+                .getSubscriptionByID(superToken, agreementId);
+
+            // sanity checks for testing purpose
+            require(publisher == address(this), "DRT: publisher mismatch");
+            //require(indexId == INDEX_ID, "DRT: publisher mismatch");
+
+            if (approved) {
+                isSubscribing[
+                    context.msgSender /* subscriber */
+                ] = true;
+            }
+        }
+    }
+
+    function sqrt(uint128 x) public pure returns (uint128 y) {
+        uint128 z = (x + 1) / 2;
+        y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+    }
+
+    function _addVotes(
+        address charity,
+        int96 flowRate,
+        bytes memory ctx
+    ) internal returns (bytes memory newCtx) {
+        require(
+            flowRate > 0,
+            "SQF: cannot take the square root of a negative number"
+        );
+        uint128 convertedFlowRate = uint128(int128(flowRate));
+
+        charityToRootVotes[charity] =
+            charityToRootVotes[charity] +
+            sqrt(convertedFlowRate);
+        uint128 votes = charityToRootVotes[charity] *
+            charityToRootVotes[charity];
+        return _updateVotes(charity, votes, ctx);
+    }
+
+    function _substractVotes(
+        address charity,
+        int96 flowRate,
+        bytes memory ctx
+    ) internal returns (bytes memory newCtx) {
+        require(
+            flowRate > 0,
+            "SQF: cannot take the square root of a negative number"
+        );
+        uint128 convertedFlowRate = uint128(int128(flowRate));
+        charityToRootVotes[charity] =
+            charityToRootVotes[charity] -
+            sqrt(convertedFlowRate);
+        uint128 votes = charityToRootVotes[charity] *
+            charityToRootVotes[charity];
+        return _updateVotes(charity, votes, ctx);
+    }
+
+    function _updateVotes(
+        address charity,
+        uint128 units,
+        bytes memory ctx
+    ) internal returns (bytes memory newCtx) {
+        return
+            idaV1.updateSubscriptionUnitsWithCtx(
+                ctx,
+                _acceptedToken,
+                _INDEX_ID,
+                charity,
+                units
+            );
+    }
+
+    /**************************************************************************
      * SuperApp callbacks
      *************************************************************************/
 
@@ -155,9 +269,13 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         onlyExpected(_superToken, _agreementClass)
         returns (bytes memory cbdata)
     {
+        if (_isIDAv1(_agreementClass)) {
+            return new bytes(0);
+        }
+
         ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
         address charity = abi.decode(decompiledContext.userData, (address));
-        require(charities[charity], "SQF: Not a valid charity");
+        require(isSubscribing[charity], "SQF: Not a valid charity");
         //isValidCharity(charity); TypeError
 
         address user = _host.decodeCtx(_ctx).msgSender;
@@ -191,6 +309,8 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         require(newFlowRate > 0, "SQF : Stream was not created");
         // emit Flow(charity, newFlowRate, newFlowRate);
         newCtx = _increaseFlow(charity, newFlowRate, _ctx);
+        newCtx = _addVotes(charity, newFlowRate, newCtx);
+
         charityToFlowRate[charity] = charityToFlowRate[charity] + newFlowRate;
         userToFlowRate[user] = newFlowRate;
         userToCharity[user] = charity;
@@ -212,9 +332,13 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         onlyExpected(_superToken, _agreementClass)
         returns (bytes memory cbdata)
     {
+        if (_isIDAv1(_agreementClass)) {
+            return new bytes(0);
+        }
+
         ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
         address newCharity = abi.decode(decompiledContext.userData, (address));
-        require(charities[newCharity], "SQF: Not a valid charity");
+        require(isSubscribing[newCharity], "SQF: Not a valid charity");
         //isValidCharity(newCharity); TypeError
 
         (, int96 oldFlowRate, , ) = IConstantFlowAgreementV1(_agreementClass)
@@ -252,7 +376,9 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         address oldCharity = userToCharity[user];
         if (userToCharity[user] != newCharity) {
             newCtx = _reduceFlow(oldCharity, oldFlowRate, _ctx);
+            newCtx = _substractVotes(oldCharity, oldFlowRate, newCtx);
             newCtx = _increaseFlow(newCharity, newFlowRate, newCtx);
+            newCtx = _addVotes(newCharity, newFlowRate, newCtx);
 
             userToCharity[user] = newCharity;
             charityToFlowRate[oldCharity] =
@@ -267,10 +393,16 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
             int96 flowRateChange = newFlowRate - oldFlowRate;
             if (flowRateChange > 0) {
                 newCtx = _increaseFlow(newCharity, flowRateChange, _ctx);
+                newCtx = _addVotes(newCharity, newFlowRate, newCtx);
             }
             //flow is redduced or deleted
             else {
                 newCtx = _reduceFlow(newCharity, flowRateChange * -1, _ctx);
+                newCtx = _substractVotes(
+                    newCharity,
+                    flowRateChange * -1,
+                    newCtx
+                );
             }
             charityToFlowRate[newCharity] =
                 charityToFlowRate[newCharity] +
@@ -311,6 +443,7 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         address charity = userToCharity[user];
         int96 flowRate = userToFlowRate[user];
         newCtx = _reduceFlow(charity, flowRate, _ctx);
+        newCtx = _substractVotes(charity, flowRate, newCtx);
 
         charityToFlowRate[charity] = charityToFlowRate[charity] - flowRate;
         userToFlowRate[user] = 0;
@@ -330,6 +463,14 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
             );
     }
 
+    function _isIDAv1(address agreementClass) private view returns (bool) {
+        return
+            ISuperAgreement(agreementClass).agreementType() ==
+            keccak256(
+                "org.superfluid-finance.agreements.InstantDistributionAgreement.v1"
+            );
+    }
+
     modifier onlyHost() {
         require(msg.sender == address(_host), "SQF: support only one host");
         _;
@@ -337,7 +478,10 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
 
     modifier onlyExpected(ISuperToken superToken, address agreementClass) {
         require(_isSameToken(superToken), "SQF: not accepted token");
-        require(_isCFAv1(agreementClass), "SQF: only CFAv1 supported");
+        require(
+            _isCFAv1(agreementClass) || _isIDAv1(agreementClass),
+            "SQF: only CFAv1 or IDAv1 supported"
+        );
         _;
     }
 }
