@@ -75,12 +75,12 @@ before(async function () {
     charityAddress2 = accounts[6].address;
     charityAddress3 = accounts[7].address;
 
+    const something = await SuperQuadraticFunding.connect(accounts[0]).createIndex();
+
     SuperQuadraticFunding.addCharity(charityAddress1);
     SuperQuadraticFunding.addCharity(charityAddress2);
     SuperQuadraticFunding.addCharity(charityAddress3);
 
-
-    var cxt = web3.eth.abi.encodeParameter('address', charityAddress1);
 
 });
 
@@ -108,15 +108,15 @@ describe("sending flows", async function () {
 
         console.log(SuperQuadraticFunding.address);
 
-        let var1, var2, charityVotes, var4 = await sf.idaV1.getSubscription({
-            superToken: daix.address,
-            publisher: SuperQuadraticFunding.address,
-            indexId: "0",
-            subscriber: charityAddress1,
-            providerOrSigner: accounts[0]
-        });
+        // let var1, var2, charityVotes, var4 = await sf.idaV1.getSubscription({
+        //     superToken: daix.address,
+        //     publisher: SuperQuadraticFunding.address,
+        //     indexId: "0",
+        //     subscriber: charityAddress1,
+        //     providerOrSigner: accounts[0]
+        // });
 
-        console.log('Charity1  Votes before', charityVotes);
+        // console.log('Charity1  Votes before', charityVotes);
 
         const appInitialBalance = await daix.balanceOf({
             account: SuperQuadraticFunding.address,

@@ -1,11 +1,11 @@
 require("@nomiclabs/hardhat-ethers");
 
 //kovan addresses - change if using a different network
-const host = '0xF0d7d1D47109bA426B9D8A3Cde1941327af1eea3';
-const fDAIx = '0xe3cb950cb164a31c66e32c320a800d477019dcff';
+const host = '0xEB796bdb90fFA0f28255275e16936D25d3418603';
+const fDAIx = '0x5D8B4C2554aeB7e86F387B4d6c00Ac33499Ed01f';
 
 //your address here...
-const owner = "0x5966aa11c794893774a382d9a19743B8be6BFFd1";
+const owner = "0x12924778CD4BE86d491405281E73FB03e5a5a82F";
 
 //to deploy, run yarn hardhat deploy --network kovan
 
@@ -17,8 +17,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   await deploy("SuperQuadraticFunding", {
     from: deployer,
-    args: [owner, 'Super Quadratic Funding', 'SQF', host, fDAIx],
+    args: [host, fDAIx],
     log: true,
   })
-};
-module.exports.tags = ["SuperQuadraticFunding"];
+  module.exports.tags = ["SuperQuadraticFunding"];
+}

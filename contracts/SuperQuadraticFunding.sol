@@ -61,7 +61,6 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
 
         cfaV1 = CFAv1Library.InitData(_host, _cfa);
         idaV1 = IDAv1Library.InitData(_host, _ida);
-        idaV1.createIndex(_acceptedToken, _INDEX_ID);
 
         uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL;
         _host.registerApp(configWord);
@@ -77,6 +76,10 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
     modifier isValidCharity(address charity) {
         require(isSubscribing[charity]);
         _;
+    }
+
+    function createIndex() external {
+        idaV1.createIndex(_acceptedToken, _INDEX_ID);
     }
 
     function addCharity(address charity) external onlyOwner {
@@ -179,37 +182,6 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         idaV1.distribute(_acceptedToken, _INDEX_ID, actualCashAmount);
     }
 
-    // function _checkSubscription(
-    //     ISuperToken superToken,
-    //     bytes calldata ctx,
-    //     bytes32 agreementId
-    // ) private {
-    //     ISuperfluid.Context memory context = _host.decodeCtx(ctx);
-    //     // only interested in the subscription approval callbacks
-    //     if (
-    //         context.agreementSelector ==
-    //         IInstantDistributionAgreementV1.approveSubscription.selector
-    //     ) {
-    //         address publisher;
-    //         uint32 indexId;
-    //         bool approved;
-    //         uint128 units;
-    //         uint256 pendingDistribution;
-    //         (publisher, indexId, approved, units, pendingDistribution) = _ida
-    //             .getSubscriptionByID(superToken, agreementId);
-
-    //         // sanity checks for testing purpose
-    //         require(publisher == address(this), "DRT: publisher mismatch");
-    //         //require(indexId == INDEX_ID, "DRT: publisher mismatch");
-
-    //         if (approved) {
-    //             isSubscribing[
-    //                 context.msgSender /* subscriber */
-    //             ] = true;
-    //         }
-    //     }
-    // }
-
     function sqrt(uint128 x) public pure returns (uint128 y) {
         uint128 z = (x + 1) / 2;
         y = x;
@@ -275,33 +247,33 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
      * SuperApp callbacks
      *************************************************************************/
 
-    function beforeAgreementCreated(
-        ISuperToken _superToken,
-        address _agreementClass,
-        bytes32, //_agreementId,
-        bytes calldata, //_agreementData,
-        bytes calldata _ctx
-    )
-        external
-        view
-        override
-        onlyHost
-        onlyExpected(_superToken, _agreementClass)
-        returns (bytes memory cbdata)
-    {
-        if (_isIDAv1(_agreementClass)) {
-            return new bytes(0);
-        }
+    // function beforeAgreementCreated(
+    //     ISuperToken _superToken,
+    //     address _agreementClass,
+    //     bytes32, //_agreementId,
+    //     bytes calldata, //_agreementData,
+    //     bytes calldata _ctx
+    // )
+    //     external
+    //     view
+    //     override
+    //     onlyExpected(_superToken, _agreementClass)
+    //     onlyHost
+    //     returns (bytes memory cbdata)
+    // {
+    //     if (_isIDAv1(_agreementClass)) {
+    //         return new bytes(0);
+    //     }
 
-        ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
-        address charity = abi.decode(decompiledContext.userData, (address));
-        require(isSubscribing[charity], "SQF: Not a valid charity");
-        //isValidCharity(charity); TypeError
+    //     ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
+    //     address charity = abi.decode(decompiledContext.userData, (address));
+    //     require(isSubscribing[charity], "SQF: Not a valid charity");
+    //     //isValidCharity(charity); TypeError
 
-        address user = _host.decodeCtx(_ctx).msgSender;
+    //     address user = _host.decodeCtx(_ctx).msgSender;
 
-        return abi.encode(user, charity);
-    }
+    //     return abi.encode(user, charity);
+    // }
 
     function afterAgreementCreated(
         ISuperToken _superToken,
@@ -351,8 +323,8 @@ contract SuperQuadraticFunding is SuperAppBase, Ownable {
         external
         view
         override
-        onlyHost
         onlyExpected(_superToken, _agreementClass)
+        onlyHost
         returns (bytes memory cbdata)
     {
         if (_isIDAv1(_agreementClass)) {

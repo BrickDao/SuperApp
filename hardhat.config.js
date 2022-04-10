@@ -5,7 +5,7 @@ require('hardhat-deploy');
 require("dotenv").config();
 const GAS_LIMIT = 8000000;
 
-// const defaultNetwork = 'kovan';
+// const defaultNetwork = 'mumbai';
 
 module.exports = {
   // defaultNetwork,
@@ -15,8 +15,8 @@ module.exports = {
   //     port: process.env.GANACHE_PORT || 8545,
   //   },
 
-  //   kovan: {
-  //     url: `${process.env.KOVAN_RPC_URL}`,
+  //   mumbai: {
+  //     url: `${process.env.MUMBAI_RPC_URL}`,
   //     accounts: [`0x${process.env.DEPLOYER_PRIVATE_KEY}`],
   //     gas: GAS_LIMIT,
   //     gasPrice: 11e9, // 10 GWEI
