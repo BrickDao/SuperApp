@@ -110,7 +110,7 @@ describe("sending flows", async function () {
 
         let var1, var2, charityVotes, var4 = await sf.idaV1.getSubscription({
             superToken: daix.address,
-            publisher: accounts[0].address,
+            publisher: SuperQuadraticFunding.address,
             indexId: "0",
             subscriber: charityAddress1,
             providerOrSigner: accounts[0]
